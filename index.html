@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦁 斗兽棋 - 动物大作战 🐘</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>🎮 斗兽棋 🎮</h1>
+            <div class="score-board">
+                <div class="player-score player-blue">
+                    <span class="player-label">🧒 小朋友</span>
+                    <span class="score" id="player-score">0</span>
+                </div>
+                <div class="vs">VS</div>
+                <div class="player-score player-red">
+                    <span class="player-label">🤖 电脑</span>
+                    <span class="score" id="ai-score">0</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="game-info">
+            <div class="turn-indicator" id="turn-indicator">
+                🎯 轮到小朋友走棋啦！
+            </div>
+        </div>
+
+        <div class="board-container">
+            <div class="board" id="board">
+                <!-- 棋盘格子将由JavaScript生成 -->
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-start" id="btn-start" onclick="startGame()">
+                🎮 开始游戏
+            </button>
+            <button class="btn btn-hint" id="btn-hint" onclick="showHint()">
+                💡 提示
+            </button>
+            <button class="btn btn-sound" id="btn-sound" onclick="toggleSound()">
+                🔊 声音
+            </button>
+        </div>
+
+        <div class="animal-guide">
+            <h3>🏆 动物排行榜（大吃小）</h3>
+            <div class="animal-list">
+                <span class="animal-item">🐘象</span>
+                <span class="arrow">></span>
+                <span class="animal-item">🦁狮</span>
+                <span class="arrow">></span>
+                <span class="animal-item">🐯虎</span>
+                <span class="arrow">></span>
+                <span class="animal-item">🐆豹</span>
+                <span class="arrow">></span>
+                <span class="animal-item">🐺狼</span>
+                <span class="arrow">></span>
+                <span class="animal-item">🐕狗</span>
+                <span class="arrow">></span>
+                <span class="animal-item">🐱猫</span>
+                <span class="arrow">></span>
+                <span class="animal-item">🐭鼠</span>
+            </div>
+            <p class="special-rule">✨ 特殊规则：小老鼠可以吃大象哦！</p>
+        </div>
+
+        <!-- 胜利弹窗 -->
+        <div class="modal" id="win-modal">
+            <div class="modal-content">
+                <div class="fireworks" id="fireworks"></div>
+                <h2 id="win-message">🎉 恭喜你赢了！🎉</h2>
+                <div class="trophy">🏆</div>
+                <button class="btn btn-play-again" onclick="startGame()">
+                    🔄 再玩一次
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
