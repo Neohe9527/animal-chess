@@ -10,9 +10,29 @@
     <div class="game-container">
         <header class="game-header">
             <h1>🎮 斗兽棋 🎮</h1>
+            <div class="player-select">
+                <span class="player-select-label">我是：</span>
+                <div class="player-buttons">
+                    <button class="player-btn active" data-player="amelia" onclick="selectPlayer('amelia')">
+                        <span class="player-avatar">👧</span>
+                        <span class="player-name">Amelia</span>
+                        <span class="player-difficulty">简单</span>
+                    </button>
+                    <button class="player-btn" data-player="yolanda" onclick="selectPlayer('yolanda')">
+                        <span class="player-avatar">👩</span>
+                        <span class="player-name">Yolanda</span>
+                        <span class="player-difficulty">中等</span>
+                    </button>
+                    <button class="player-btn" data-player="neo" onclick="selectPlayer('neo')">
+                        <span class="player-avatar">🦸</span>
+                        <span class="player-name">Neo</span>
+                        <span class="player-difficulty">困难</span>
+                    </button>
+                </div>
+            </div>
             <div class="score-board">
                 <div class="player-score player-blue">
-                    <span class="player-label">🧒 小朋友</span>
+                    <span class="player-label" id="player-name-display">👧 Amelia</span>
                     <span class="score" id="player-score">0</span>
                 </div>
                 <div class="vs">VS</div>

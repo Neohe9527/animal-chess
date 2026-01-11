@@ -69,8 +69,38 @@ let gameState = {
     playerScore: 0,
     aiScore: 0,
     gameOver: false,
-    soundEnabled: true
+    soundEnabled: true,
+    difficulty: 'amelia',  // 'amelia' = 简单, 'yolanda' = 中等, 'neo' = 困难
+    playerName: 'Amelia'
 };
+
+// 玩家配置
+const PLAYERS = {
+    amelia: { name: 'Amelia', avatar: '👧', difficulty: '简单' },
+    yolanda: { name: 'Yolanda', avatar: '👩', difficulty: '中等' },
+    neo: { name: 'Neo', avatar: '🦸', difficulty: '困难' }
+};
+
+// 选择玩家身份
+function selectPlayer(playerId) {
+    gameState.difficulty = playerId;
+    gameState.playerName = PLAYERS[playerId].name;
+
+    // 更新按钮状态
+    document.querySelectorAll('.player-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`.player-btn[data-player="${playerId}"]`).classList.add('active');
+
+    // 更新显示名称
+    document.getElementById('player-name-display').textContent =
+        `${PLAYERS[playerId].avatar} ${PLAYERS[playerId].name}`;
+
+    playSound('select');
+
+    // 重新开始游戏
+    startGame();
+}
 
 // ==================== 音效系统 ====================
 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -472,7 +502,7 @@ function switchPlayer() {
 function updateTurnIndicator() {
     const indicator = document.getElementById('turn-indicator');
     if (gameState.currentPlayer === 'blue') {
-        indicator.textContent = '🎯 轮到小朋友走棋啦！';
+        indicator.textContent = `🎯 轮到 ${gameState.playerName} 走棋啦！`;
         indicator.style.background = 'linear-gradient(135deg, #4ecdc4 0%, #44a3aa 100%)';
     } else {
         indicator.textContent = '🤖 电脑正在思考...';
@@ -492,8 +522,21 @@ function aiMove() {
         return;
     }
 
-    // 使用改进的AI策略
-    let bestMove = selectBestMove(moves);
+    // 根据难度选择不同的AI策略
+    let bestMove;
+    switch (gameState.difficulty) {
+        case 'amelia':
+            bestMove = selectMoveEasy(moves);
+            break;
+        case 'yolanda':
+            bestMove = selectMoveMedium(moves);
+            break;
+        case 'neo':
+            bestMove = selectMoveHard(moves);
+            break;
+        default:
+            bestMove = selectMoveEasy(moves);
+    }
 
     if (bestMove) {
         movePiece(bestMove.from[0], bestMove.from[1], bestMove.to[0], bestMove.to[1]);
@@ -522,44 +565,299 @@ function getAllValidMoves(player) {
     return moves;
 }
 
-function selectBestMove(moves) {
-    // 使用Minimax算法预判一步 - AI会考虑玩家的最佳应对
-
-    // 1. 优先进入对方兽穴（获胜）- 最高优先级
+// ==================== 简单模式 AI (Amelia) ====================
+// 策略：随机走棋，偶尔吃子，经常犯错
+function selectMoveEasy(moves) {
+    // 能赢就赢
     const winMove = moves.find(m => isDen(m.to[0], m.to[1], 'blue'));
     if (winMove) return winMove;
 
-    // 为每个移动计算分数（考虑对方的反击）
+    // 30%概率随机走（故意犯错）
+    if (Math.random() < 0.3) {
+        return moves[Math.floor(Math.random() * moves.length)];
+    }
+
+    // 找出可以吃子的移动
+    const captureMoves = moves.filter(m => {
+        const target = gameState.board[m.to[1]][m.to[0]];
+        return target !== null;
+    });
+
+    // 50%概率吃子（如果有的话）
+    if (captureMoves.length > 0 && Math.random() < 0.5) {
+        return captureMoves[Math.floor(Math.random() * captureMoves.length)];
+    }
+
+    // 简单评分：只考虑向前移动
     const scoredMoves = moves.map(move => {
-        // 模拟这步移动
-        const simulatedBoard = simulateMove(gameState.board, move);
+        let score = Math.random() * 20;  // 大量随机因素
 
-        // 计算这步移动的即时得分
-        let score = evaluateMoveScore(move, gameState.board);
-
-        // 预判对方的最佳应对，并扣除相应分数
-        const opponentBestResponse = predictOpponentBestMove(simulatedBoard, 'blue');
-        if (opponentBestResponse) {
-            // 扣除对方最佳应对的得分
-            score -= opponentBestResponse.score * 0.8;  // 0.8权重，不完全抵消
+        // 向前移动加分
+        if (move.to[1] > move.from[1]) {
+            score += 10;
         }
-
-        // 评估移动后的整体局面
-        score += evaluateBoardPosition(simulatedBoard, 'red');
 
         return { ...move, score };
     });
 
-    // 按分数排序
     scoredMoves.sort((a, b) => b.score - a.score);
 
-    // 85%概率选择最佳移动，15%概率选择次优移动
-    if (scoredMoves.length > 1 && Math.random() < 0.15) {
+    // 从前5个中随机选
+    const topMoves = scoredMoves.slice(0, Math.min(5, scoredMoves.length));
+    return topMoves[Math.floor(Math.random() * topMoves.length)];
+}
+
+// ==================== 中等模式 AI (Yolanda) ====================
+// 策略：一步预判，会吃子，会躲避危险，但不会深度思考
+function selectMoveMedium(moves) {
+    // 能赢就赢
+    const winMove = moves.find(m => isDen(m.to[0], m.to[1], 'blue'));
+    if (winMove) return winMove;
+
+    // 为每个移动计算分数
+    const scoredMoves = moves.map(move => {
+        const simulatedBoard = simulateMove(gameState.board, move);
+        let score = evaluateMoveScore(move, gameState.board);
+
+        // 预判对方的最佳应对
+        const opponentBestResponse = predictOpponentBestMove(simulatedBoard, 'blue');
+        if (opponentBestResponse) {
+            score -= opponentBestResponse.score * 0.6;  // 中等权重
+        }
+
+        // 评估局面
+        score += evaluateBoardPosition(simulatedBoard, 'red') * 0.5;
+
+        // 添加一些随机性
+        score += Math.random() * 30;
+
+        return { ...move, score };
+    });
+
+    scoredMoves.sort((a, b) => b.score - a.score);
+
+    // 20%概率选择次优移动
+    if (scoredMoves.length > 1 && Math.random() < 0.2) {
         const topMoves = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
         return topMoves[Math.floor(Math.random() * topMoves.length)];
     }
 
     return scoredMoves[0];
+}
+
+// ==================== 困难模式 AI (Neo) ====================
+// 策略：3层Minimax + Alpha-Beta剪枝，完美评估，几乎不犯错
+function selectMoveHard(moves) {
+    // 能赢就赢
+    const winMove = moves.find(m => isDen(m.to[0], m.to[1], 'blue'));
+    if (winMove) return winMove;
+
+    // 使用Minimax算法，搜索深度3
+    const scoredMoves = moves.map(move => {
+        const simulatedBoard = simulateMove(gameState.board, move);
+
+        // 检查这步是否让对方直接获胜
+        const opponentMoves = getValidMovesForBoard(simulatedBoard, 'blue');
+        const opponentWin = opponentMoves.find(m => isDen(m.to[0], m.to[1], 'red'));
+        if (opponentWin) {
+            return { ...move, score: -10000 };  // 绝对避免
+        }
+
+        // Minimax搜索，深度3，AI是最大化方
+        const score = minimax(simulatedBoard, 2, -Infinity, Infinity, false);
+
+        return { ...move, score };
+    });
+
+    scoredMoves.sort((a, b) => b.score - a.score);
+
+    // 5%概率选择次优（保持一点人性）
+    if (scoredMoves.length > 1 && Math.random() < 0.05) {
+        const topMoves = scoredMoves.slice(0, Math.min(2, scoredMoves.length));
+        return topMoves[Math.floor(Math.random() * topMoves.length)];
+    }
+
+    return scoredMoves[0];
+}
+
+// Minimax算法 + Alpha-Beta剪枝
+function minimax(board, depth, alpha, beta, isMaximizing) {
+    // 检查终止条件
+    const terminalScore = evaluateTerminal(board);
+    if (terminalScore !== null) {
+        return terminalScore;
+    }
+
+    if (depth === 0) {
+        return evaluateBoardAdvanced(board, 'red');
+    }
+
+    const player = isMaximizing ? 'red' : 'blue';
+    const moves = getValidMovesForBoard(board, player);
+
+    if (moves.length === 0) {
+        return isMaximizing ? -5000 : 5000;  // 无子可走
+    }
+
+    // 移动排序优化：优先考虑吃子和接近兽穴的移动
+    moves.sort((a, b) => {
+        const aCapture = board[a.to[1]][a.to[0]] ? 1 : 0;
+        const bCapture = board[b.to[1]][b.to[0]] ? 1 : 0;
+        return bCapture - aCapture;
+    });
+
+    if (isMaximizing) {
+        let maxEval = -Infinity;
+        for (const move of moves) {
+            const newBoard = simulateMove(board, move);
+            const evalScore = minimax(newBoard, depth - 1, alpha, beta, false);
+            maxEval = Math.max(maxEval, evalScore);
+            alpha = Math.max(alpha, evalScore);
+            if (beta <= alpha) break;  // Beta剪枝
+        }
+        return maxEval;
+    } else {
+        let minEval = Infinity;
+        for (const move of moves) {
+            const newBoard = simulateMove(board, move);
+            const evalScore = minimax(newBoard, depth - 1, alpha, beta, true);
+            minEval = Math.min(minEval, evalScore);
+            beta = Math.min(beta, evalScore);
+            if (beta <= alpha) break;  // Alpha剪枝
+        }
+        return minEval;
+    }
+}
+
+// 检查是否达到终止状态
+function evaluateTerminal(board) {
+    const redDen = DENS.red;
+    const blueDen = DENS.blue;
+
+    // 检查兽穴
+    const pieceInRedDen = board[redDen[1]][redDen[0]];
+    const pieceInBlueDen = board[blueDen[1]][blueDen[0]];
+
+    if (pieceInRedDen && pieceInRedDen.player === 'blue') {
+        return -10000;  // 玩家获胜，AI输
+    }
+    if (pieceInBlueDen && pieceInBlueDen.player === 'red') {
+        return 10000;   // AI获胜
+    }
+
+    // 检查是否有一方没有棋子
+    let redPieces = 0, bluePieces = 0;
+    for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+            const piece = board[y][x];
+            if (piece) {
+                if (piece.player === 'red') redPieces++;
+                else bluePieces++;
+            }
+        }
+    }
+
+    if (redPieces === 0) return -10000;
+    if (bluePieces === 0) return 10000;
+
+    return null;  // 游戏继续
+}
+
+// 高级局面评估（用于困难模式）
+function evaluateBoardAdvanced(board, player) {
+    let score = 0;
+    const opponent = player === 'red' ? 'blue' : 'red';
+    const myDenY = player === 'red' ? 0 : 8;
+    const enemyDenY = player === 'red' ? 8 : 0;
+
+    let myPieces = [];
+    let opponentPieces = [];
+
+    // 收集所有棋子信息
+    for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+            const piece = board[y][x];
+            if (piece) {
+                if (piece.player === player) {
+                    myPieces.push({ piece, x, y });
+                } else {
+                    opponentPieces.push({ piece, x, y });
+                }
+            }
+        }
+    }
+
+    // 1. 棋子价值（等级越高越重要）
+    const pieceValues = { 8: 100, 7: 90, 6: 80, 5: 50, 4: 40, 3: 30, 2: 20, 1: 60 };  // 老鼠特殊价值
+
+    for (const { piece, x, y } of myPieces) {
+        score += pieceValues[piece.rank] || piece.rank * 10;
+
+        // 2. 位置价值 - 越接近对方兽穴越好
+        const distToEnemyDen = Math.abs(x - 3) + Math.abs(y - enemyDenY);
+        score += (14 - distToEnemyDen) * 8;
+
+        // 3. 控制中路加分
+        if (x >= 2 && x <= 4) {
+            score += 15;
+        }
+
+        // 4. 高级棋子在前线加分
+        if (piece.rank >= 6) {
+            const progress = player === 'red' ? y : (8 - y);
+            score += progress * 5;
+        }
+
+        // 5. 老鼠接近对方象加分（威胁）
+        if (piece.type === 'RAT') {
+            for (const op of opponentPieces) {
+                if (op.piece.type === 'ELEPHANT') {
+                    const dist = Math.abs(x - op.x) + Math.abs(y - op.y);
+                    if (dist <= 3) {
+                        score += (4 - dist) * 20;
+                    }
+                }
+            }
+        }
+
+        // 6. 狮虎在河边加分（可以跳河）
+        if (piece.type === 'LION' || piece.type === 'TIGER') {
+            if (y === 2 || y === 6) {
+                score += 25;
+            }
+        }
+    }
+
+    // 对方棋子评估（减分）
+    for (const { piece, x, y } of opponentPieces) {
+        score -= pieceValues[piece.rank] || piece.rank * 10;
+
+        // 对方接近我方兽穴是威胁
+        const distToMyDen = Math.abs(x - 3) + Math.abs(y - myDenY);
+        score -= (14 - distToMyDen) * 10;
+
+        // 对方在陷阱附近是好事
+        if (isNearTrap(x, y, player)) {
+            score += 30;
+        }
+    }
+
+    // 7. 棋子数量优势
+    score += (myPieces.length - opponentPieces.length) * 50;
+
+    // 8. 机动性评估（可移动步数）
+    const myMobility = getValidMovesForBoard(board, player).length;
+    const opMobility = getValidMovesForBoard(board, opponent).length;
+    score += (myMobility - opMobility) * 3;
+
+    // 9. 兽穴防守评估
+    const denDefenders = myPieces.filter(p => {
+        const dist = Math.abs(p.x - 3) + Math.abs(p.y - myDenY);
+        return dist <= 2;
+    });
+    score += denDefenders.length * 20;
+
+    return score;
 }
 
 // 模拟一步移动，返回新的棋盘状态（不修改原棋盘）
@@ -895,11 +1193,11 @@ function showWin(winner) {
     const message = document.getElementById('win-message');
 
     if (winner === 'blue') {  // 玩家获胜
-        message.textContent = '🎉 太棒了！你赢了！🎉';
+        message.textContent = `🎉 太棒了！${gameState.playerName} 赢了！🎉`;
         playSound('win');
         createFireworks();
     } else {  // AI获胜
-        message.textContent = '😊 电脑赢了，再试一次吧！';
+        message.textContent = `😊 电脑赢了，${gameState.playerName} 再试一次吧！`;
         playSound('lose');
     }
 
