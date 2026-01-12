@@ -651,33 +651,51 @@ function selectMoveMedium(moves) {
 }
 
 // ==================== 困难模式 AI (Neo) ====================
-// 策略：3层Minimax + Alpha-Beta剪枝，完美评估，几乎不犯错
+// 策略：4层Minimax + Alpha-Beta剪枝，完美评估，几乎不犯错
 function selectMoveHard(moves) {
     // 能赢就赢
     const winMove = moves.find(m => isDen(m.to[0], m.to[1], 'blue'));
     if (winMove) return winMove;
 
-    // 使用Minimax算法，搜索深度3
+    // 紧急防守：检查对方是否有棋子可以1步进入兽穴
+    const opponentMoves = getAllValidMoves('blue');
+    const immediateThreats = opponentMoves.filter(m => isDen(m.to[0], m.to[1], 'red'));
+
+    if (immediateThreats.length > 0) {
+        // 优先找能吃掉威胁棋子的走法
+        for (const threat of immediateThreats) {
+            const blockMove = moves.find(m =>
+                m.to[0] === threat.from[0] && m.to[1] === threat.from[1] &&
+                canCapture(m.piece, threat.piece)
+            );
+            if (blockMove) return blockMove;
+        }
+        // 或者堵住兽穴入口
+        const blockDenMove = moves.find(m => isDen(m.to[0], m.to[1], 'red'));
+        if (blockDenMove) return blockDenMove;
+    }
+
+    // 使用Minimax算法，搜索深度4
     const scoredMoves = moves.map(move => {
         const simulatedBoard = simulateMove(gameState.board, move);
 
         // 检查这步是否让对方直接获胜
-        const opponentMoves = getValidMovesForBoard(simulatedBoard, 'blue');
-        const opponentWin = opponentMoves.find(m => isDen(m.to[0], m.to[1], 'red'));
+        const opponentMovesAfter = getValidMovesForBoard(simulatedBoard, 'blue');
+        const opponentWin = opponentMovesAfter.find(m => isDen(m.to[0], m.to[1], 'red'));
         if (opponentWin) {
             return { ...move, score: -10000 };  // 绝对避免
         }
 
-        // Minimax搜索，深度3，AI是最大化方
-        const score = minimax(simulatedBoard, 2, -Infinity, Infinity, false);
+        // Minimax搜索，深度4，AI是最大化方
+        const score = minimax(simulatedBoard, 3, -Infinity, Infinity, false);
 
         return { ...move, score };
     });
 
     scoredMoves.sort((a, b) => b.score - a.score);
 
-    // 5%概率选择次优（保持一点人性）
-    if (scoredMoves.length > 1 && Math.random() < 0.05) {
+    // 3%概率选择次优（保持一点人性）
+    if (scoredMoves.length > 1 && Math.random() < 0.03) {
         const topMoves = scoredMoves.slice(0, Math.min(2, scoredMoves.length));
         return topMoves[Math.floor(Math.random() * topMoves.length)];
     }
@@ -860,7 +878,21 @@ function evaluateBoardAdvanced(board, player) {
         const dist = Math.abs(p.x - 3) + Math.abs(p.y - myDenY);
         return dist <= 2;
     });
-    score += denDefenders.length * 20;
+    score += denDefenders.length * 25;
+
+    // 10. 紧急威胁检测 - 对方棋子非常接近兽穴时惩罚
+    for (const { piece, x, y } of opponentPieces) {
+        const distToDen = Math.abs(x - 3) + Math.abs(y - myDenY);
+
+        // 对方棋子距离兽穴1步，危险
+        if (distToDen === 1) {
+            score -= 200;
+        }
+        // 对方棋子距离兽穴2步，需警惕
+        else if (distToDen === 2) {
+            score -= 50;
+        }
+    }
 
     return score;
 }
