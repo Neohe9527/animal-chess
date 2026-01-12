@@ -254,8 +254,14 @@ body {
 
 /* 河流格子 */
 .cell.river {
-    background: linear-gradient(135deg, #87CEEB 0%, #4169E1 100%);
-    animation: wave 3s ease-in-out infinite;
+    background: transparent;
+    padding: 0;
+    overflow: hidden;
+}
+
+.cell.river > svg {
+    width: 100%;
+    height: 100%;
 }
 
 @keyframes wave {
@@ -265,61 +271,72 @@ body {
 
 /* 陷阱格子 */
 .cell.trap {
-    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    background: linear-gradient(135deg, #90EE90 0%, #32CD32 100%);
+    padding: 0;
+    overflow: hidden;
 }
 
-.cell.trap::after {
-    content: '⚠️';
-    position: absolute;
-    font-size: 0.8rem;
-    opacity: 0.5;
+.cell.trap > svg {
+    width: 100%;
+    height: 100%;
 }
 
 /* 兽穴格子 */
 .cell.den {
-    background: linear-gradient(135deg, #DDA0DD 0%, #9370DB 100%);
+    background: linear-gradient(135deg, #D2B48C 0%, #8B7355 100%);
+    padding: 0;
+    overflow: hidden;
 }
 
 .cell.den.red-den {
-    background: linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%);
+    background: linear-gradient(135deg, #DEB887 0%, #A0522D 100%);
 }
 
 .cell.den.blue-den {
-    background: linear-gradient(135deg, #ADD8E6 0%, #4169E1 100%);
+    background: linear-gradient(135deg, #B0C4DE 0%, #6A8CAF 100%);
 }
 
-.cell.den::after {
-    content: '🏠';
-    position: absolute;
-    font-size: 0.8rem;
-    opacity: 0.5;
+.cell.den > svg {
+    width: 100%;
+    height: 100%;
 }
 
 /* 棋子 */
 .piece {
-    width: 85%;
-    height: 85%;
+    width: 90%;
+    height: 90%;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     z-index: 10;
+    padding: 3px;
+}
+
+.piece svg {
+    width: 100%;
+    height: 100%;
+}
+
+.piece img.twemoji {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
 }
 
 .piece.red {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
-    border: 3px solid #cc4444;
-    box-shadow: 0 4px 10px rgba(255, 107, 107, 0.5);
+    background: linear-gradient(135deg, #FFE4E4 0%, #FFCCCC 100%);
+    border: 3px solid #FF4444;
+    box-shadow: 0 4px 10px rgba(255, 68, 68, 0.4);
 }
 
 .piece.blue {
-    background: linear-gradient(135deg, #4ecdc4 0%, #44a3aa 100%);
-    border: 3px solid #339999;
-    box-shadow: 0 4px 10px rgba(78, 205, 196, 0.5);
+    background: linear-gradient(135deg, #E4F0FF 0%, #CCE0FF 100%);
+    border: 3px solid #4488FF;
+    box-shadow: 0 4px 10px rgba(68, 136, 255, 0.4);
 }
 
 .piece:hover {
@@ -434,6 +451,28 @@ body {
     padding: 5px 10px;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.animal-icon-small {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+}
+
+.animal-icon-small svg {
+    width: 100%;
+    height: 100%;
+}
+
+.twemoji-small {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    margin-right: 2px;
 }
 
 .arrow {

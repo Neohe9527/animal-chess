@@ -249,29 +249,34 @@ function renderBoard() {
             cell.dataset.x = x;
             cell.dataset.y = y;
 
-            // 添加特殊格子样式
+            // 添加特殊格子样式和图标
             if (isRiver(x, y)) {
                 cell.classList.add('river');
+                cell.innerHTML = SPECIAL_ICONS.RIVER;
             }
             if (isTrap(x, y, 'red')) {
                 cell.classList.add('trap', 'red-trap');
+                cell.innerHTML = SPECIAL_ICONS.TRAP;
             }
             if (isTrap(x, y, 'blue')) {
                 cell.classList.add('trap', 'blue-trap');
+                cell.innerHTML = SPECIAL_ICONS.TRAP;
             }
             if (isDen(x, y, 'red')) {
                 cell.classList.add('den', 'red-den');
+                cell.innerHTML = SPECIAL_ICONS.DEN_RED;
             }
             if (isDen(x, y, 'blue')) {
                 cell.classList.add('den', 'blue-den');
+                cell.innerHTML = SPECIAL_ICONS.DEN_BLUE;
             }
 
-            // 添加棋子
+            // 添加棋子（使用SVG图标）
             const piece = gameState.board[y][x];
             if (piece) {
                 const pieceEl = document.createElement('div');
                 pieceEl.className = `piece ${piece.player}`;
-                pieceEl.textContent = piece.emoji;
+                pieceEl.innerHTML = ANIMAL_ICONS[piece.type] || piece.emoji;
                 pieceEl.dataset.x = x;
                 pieceEl.dataset.y = y;
                 cell.appendChild(pieceEl);
@@ -1294,5 +1299,35 @@ function startGame() {
 
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', () => {
+    renderAnimalRanking();
     startGame();
 });
+
+// 渲染动物排行榜
+function renderAnimalRanking() {
+    const ranking = document.getElementById('animal-ranking');
+    if (!ranking) return;
+
+    const animals = [
+        { type: 'ELEPHANT', name: '象' },
+        { type: 'LION', name: '狮' },
+        { type: 'TIGER', name: '虎' },
+        { type: 'LEOPARD', name: '豹' },
+        { type: 'WOLF', name: '狼' },
+        { type: 'DOG', name: '狗' },
+        { type: 'CAT', name: '猫' },
+        { type: 'RAT', name: '鼠' }
+    ];
+
+    let html = '';
+    animals.forEach((animal, index) => {
+        const code = ANIMAL_CODES[animal.type];
+        const imgTag = `<img src="${TWEMOJI_BASE}${code}.svg" class="twemoji-small" alt="${animal.name}">`;
+        html += `<span class="animal-item">${imgTag}${animal.name}</span>`;
+        if (index < animals.length - 1) {
+            html += '<span class="arrow">></span>';
+        }
+    });
+
+    ranking.innerHTML = html;
+}
